@@ -40,18 +40,22 @@ public class SendExcelGetDataService {
 	// 檔案產生路徑
 	public static String path = "C:/Users/ShenLu/Desktop/ShenLuModule/";
 	
-//	private static String tTestPath = "";
+	// 測試用
+	private static String tTestPath = "";
 	
 	public static void main(String[] args) throws Exception {
 		
-		// jar檔路徑
-		path = getAppPath(SendExcelGetDataService.class);
-		
-		System.out.println(path + "/" + tFileName);
-		
 		SendExcelGetDataService obj = new SendExcelGetDataService();
+		String tExcelPath;
 		
-		String tExcelPath = path + "/" + tFileName;
+		if(!"".equals(tTestPath)) {
+			path = tTestPath;
+			tExcelPath = path + "/" + tFileName;
+		}else {
+			// jar檔路徑
+			path = getAppPath(SendExcelGetDataService.class);
+			tExcelPath = path + "/" + tFileName;
+		}
 		
 		// 傳入Excel路徑
 		File file = new File(tExcelPath);
