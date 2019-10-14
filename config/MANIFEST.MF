@@ -1,0 +1,4 @@
+Manifest-Version: 1.0
+Main-Class: com.made.services.SendExcelGetDataService
+Class-Path: lib/jxl-2.6.10.jar
+Created-By: ShenLu
