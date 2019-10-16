@@ -41,7 +41,7 @@ public class SendExcelGetDataService {
 	public static String path = "C:/Users/ShenLu/Desktop/ShenLuModule/";
 	
 	// 測試用
-	private static String tTestPath = "";
+	private static String tTestPath = "C:\\Users\\ShenLu\\Desktop\\111";
 	
 	public static void main(String[] args) throws Exception {
 		
@@ -65,7 +65,7 @@ public class SendExcelGetDataService {
 		
 		// 處理資料的地方		
 		obj.runTableDoWork("MSSQL",tData);
-		obj.runTableDoWork("ORACLE",tData);
+//		obj.runTableDoWork("ORACLE",tData);
 		
 		System.out.println("已完成!");
 	}
