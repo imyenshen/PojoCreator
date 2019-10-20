@@ -46,7 +46,8 @@ public class CreateDataService {
 		tSQLDataType.put("nvarchar", "nvarchar2");
 		tSQLDataType.put("nchar", "nchar");
 		tSQLDataType.put("int", "integer");	
-		tSQLDataType.put("ntext", "clob");	
+		tSQLDataType.put("ntext", "clob");
+		tSQLDataType.put("bigint", "Number");// oracel 要用 Number(19)
 	}
 	
 	/**
@@ -163,8 +164,33 @@ public class CreateDataService {
 	 * @author 伸儒
 	 * @throws Exception
 	 */
-	public void returnOracleOfMssql() {
+	public void returnOracleOfMssql() throws Exception {
 		// 還沒實作
+		StringBuffer tTableSQL = new StringBuffer();
+		String tCreateTableSQL = "";
+		
+		for(int i=0; i < tColumnDataList.size(); i++) {
+			ColumnData tColumnData = (ColumnData) tColumnDataList.get(i);
+			String tColumnName = tColumnData.getColumnName();
+			String tDescribe = tColumnData.getDescribe();
+			String tDataType = tColumnData.getDataType();
+			String tColumnLength = tColumnData.getColumnLength();
+			String tMark = "Y".equals(tColumnData.getMark()) ? "NOT NULL" : "";
+			
+			if(tSQLDataType.containsKey(tDataType)) {
+				
+				String tOracleDataType = tSQLDataType.get(tDataType);
+				
+				
+			}else {
+				throw new Exception("表格名稱 : " + tableName + " 欄位明稱 : " + tColumnName + " 的型態 "+tDataType+" 昰錯誤的");
+			}
+		}
+		
+		tTableSQL.insert(0, tCreateTableSQL);
+		tTableSQL.append(tChaneLine + tChaneLine);
+		
+		sqlResult += tTableSQL;
 	}
 	
 //	/**
@@ -302,6 +328,9 @@ public class CreateDataService {
 						case "ntext":
 							tDataType = "string";
 							break;
+						case "bigint":
+							tDataType = "string";
+							break;
 					}
 		
 					hibernateXml += "<property name=\"" + tColumnName + "\" column=\"" + tColumnName + "\" not-null=\"" + tMark + "\" type=\"" + tDataType + "\"/>";
@@ -370,6 +399,9 @@ public class CreateDataService {
 					break;
 				case "ntext":
 					tDataType = "String";
+					break;
+				case "bigint":
+					tDataType = "string";
 					break;
 			}
 
