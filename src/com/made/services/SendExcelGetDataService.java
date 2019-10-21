@@ -7,6 +7,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
@@ -103,7 +104,7 @@ public class SendExcelGetDataService {
 	}
 	
 	
-	public Map<Integer, TableData> readExcel(File file) {
+	public Map<Integer, TableData> readExcel(File file) throws Exception {
 		
 		Map<Integer, TableData> tData = new HashMap<Integer, TableData>();
 		
@@ -122,9 +123,14 @@ public class SendExcelGetDataService {
 				// 每個頁籤建立一個Sheet物件
 				Sheet sheet = wb.getSheet(index);
 				
-//				Map tTable = new HashMap();
 				TableData tTableData = new TableData();
-						
+				
+				// 主鍵陣列
+				String[] tKeyArray = new String[0];
+				
+				// 將欄位的值儲存起來結束時與主鍵欄位比對,沒有的話就丟例外
+				Set<String> tColumnNameSet = new HashSet<String>();
+				
 				// sheet.getRows()返回該頁的總行數
 				for(int i=0; i < sheet.getRows(); i++) {
 					
@@ -136,22 +142,52 @@ public class SendExcelGetDataService {
 						
 						String cellinfo = sheet.getCell(j, i).getContents();
 						if(j==1 && i==0) {
-							tTableData.setTableName(cellinfo);
+							
+							if(!"".equals(cellinfo)) {
+								tTableData.setTableName(cellinfo);
+							}else {
+								throw new Exception("分頁第  " + (i+1) + " 筆,表格名稱未輸入!");
+							}
 						}else if(j==1 && i==1) {
 							tTableData.setPK(cellinfo);
+							
+							// 如果有主鍵
+							if(!"".equals(cellinfo)) {
+								// 就自動建立索引鍵 PK + _ + 表格名稱
+								String tIndexKey = "PK_" + tTableData.getTableName();
+								tTableData.setIndexKey(tIndexKey);
+								
+								// 先將主鍵用逗號切割,儲存起來判斷是否有此欄位
+								tKeyArray = cellinfo.split(",");
+							}
 						}else if(j==3 && i==1) {
-							tTableData.setIndexKey(cellinfo);
+//							tTableData.setIndexKey(cellinfo);
 						}else if(j==3 && i==0) {
 							tTableData.setTableDescribe(cellinfo);
 						}else if(i > 2) {
 							if(j==0) {
-								tColumnData.setIndex(Integer.parseInt(cellinfo));
+								if(!"".equals(cellinfo)) {
+									tColumnData.setIndex(Integer.parseInt(cellinfo));
+								}else {
+									break;
+								}
 							}else if(j==1) {
-								tColumnData.setColumnName(cellinfo);
+								
+								if(!"".equals(cellinfo)) {
+									tColumnData.setColumnName(cellinfo);
+									tColumnNameSet.add(cellinfo);
+								}else {
+									throw new Exception("表格名稱 : " + tTableData.getTableName() + " 編號: " + tColumnData.getIndex() + " 欄位名稱未輸入!");
+								}
 							}else if(j==2) {
 								tColumnData.setDescribe(cellinfo);
 							}else if(j==3) {
-								tColumnData.setDataType(cellinfo);
+								
+								if(!"".equals(cellinfo)) {
+									tColumnData.setDataType(cellinfo);
+								}else {
+									throw new Exception("表格名稱 : " + tTableData.getTableName() + " 編號: " + tColumnData.getIndex() + " 資料型態未輸入!");
+								}
 							}else if(j==4) {
 								tColumnData.setColumnLength(cellinfo);
 							}else if(j==5) {
@@ -161,11 +197,38 @@ public class SendExcelGetDataService {
 					}
 					
 					if(i >2) {
-						//tTable.put((i-3), tColumnData);
+						Boolean isIndex = false;
+						
+						// 如果欄位索引是0 代表此列無資料直接跳出
+						if(tColumnData.getIndex() == 0) {
+							break;
+						}
+						
+						String tColumnName1 = tColumnData.getColumnName();
+						for(String tKey:tKeyArray) {
+							if(tColumnName1.equals(tKey)) {
+								isIndex = true;
+							}
+						}
+						
+						if(isIndex) {
+							// 如果是主鍵的話,檢查欄位不得為空
+							if(!"Y".equals(tColumnData.getMark())) {
+								throw new Exception("表格名稱 : " + tTableData.getTableName() + " 的欄位 " + tColumnData.getColumnName() + " 為主鍵,所以欄位不得為空!");
+							}
+							tTableData.setIndexDataList(tColumnData);
+						}
 						tTableData.setColumnDataList(tColumnData);
 					}
 				}
-				//tData.put(index, tTable);
+
+				// 將主鍵欄位與表格欄位比對,主鍵沒比對到代表沒建立就丟例外
+				for(String tKey:tKeyArray) {
+					if(!tColumnNameSet.contains(tKey)) {
+						throw new Exception("表格名稱 : " + tTableData.getTableName() + " 的主鍵 : " + tKey + " 未建立!");
+					}
+				}
+
 				tData.put(index, tTableData);
 			}
 
@@ -175,6 +238,8 @@ public class SendExcelGetDataService {
 			e.printStackTrace();
 		} catch (IOException e) {
 			e.printStackTrace();
+		} catch (Exception e) {
+			throw new Exception(e);
 		}
 		return tData;	
 	}

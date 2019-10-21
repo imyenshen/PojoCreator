@@ -23,6 +23,8 @@ public class CreateDataService {
 	
 	private List<ColumnData> tColumnDataList;
 	
+	private List<ColumnData> tIndexDataList;
+	
 	public String sqlResult = ""; // sql的指令
 	
 	String tChaneLine = "\r\n"; // 換行
@@ -36,6 +38,7 @@ public class CreateDataService {
 		this.PK = tTableData.getPK();
 		this.indexKey = tTableData.getIndexKey();
 		this.tColumnDataList = tTableData.getColumnDataList();
+		this.tIndexDataList = tTableData.getIndexDataList();
 				
 		// key 昰MSSQL value昰 Oracle
 		tSQLDataType.put("datetime", "timestamp");
@@ -128,19 +131,49 @@ public class CreateDataService {
 					tCreateTableSQL += tChaneLine + tTab;
 					tCreateTableSQL += "(";
 					tCreateTableSQL += tChaneLine + tTab + tTab;
-					tCreateTableSQL += "--" + tColumnName + " " + tDescribe;
-					tCreateTableSQL += tChaneLine + tTab + tTab;
 					
-					if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
-						tCreateTableSQL += "[" + tColumnName + "] " + tDataType + " " + tMark;
+					// 如果有主鍵,create指令就先建主鍵的欄位
+					if(tIndexDataList.size() > 0) {
+						
+						for(int j=0; j < tIndexDataList.size(); j++) {
+							ColumnData tIndexData = (ColumnData) tIndexDataList.get(j);
+							String tIndexName = tIndexData.getColumnName();
+							String tIndexDescribe = tIndexData.getDescribe();
+							String tIndexDataType = tIndexData.getDataType();
+							String tIndexLength = tIndexData.getColumnLength();
+							String tIndexMark = "NOT NULL"; // 索引不能為null
+
+							tCreateTableSQL += "-- " + tIndexName + " " + tIndexDescribe;
+							tCreateTableSQL += tChaneLine + tTab + tTab;
+							
+							if( "int".equals(tIndexDataType) || "datetime".equals(tIndexDataType) || "ntext".equals(tIndexDataType) || "bigint".equals(tIndexDataType)) {
+								tCreateTableSQL += "[" + tIndexName + "] " + tIndexDataType + " " + tIndexMark;
+							}else {
+								tCreateTableSQL += "[" + tIndexName + "] " + tIndexDataType + "(" + tIndexLength + ") " + tIndexMark;
+							}
+							
+							// 如果還有下一行就先加換行
+							if(j < tIndexDataList.size()-1) {
+								tCreateTableSQL += " ,";
+								tCreateTableSQL += tChaneLine + tTab + tTab;
+							}
+						}
 					}else {
-						tCreateTableSQL += "[" + tColumnName + "] " + tDataType + "(" + tColumnLength + ")" + tMark;
+						tCreateTableSQL += "--" + tColumnName + " " + tDescribe;
+						tCreateTableSQL += tChaneLine + tTab + tTab;
+						
+						if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
+							tCreateTableSQL += "[" + tColumnName + "] " + tDataType + " " + tMark;
+						}else {
+							tCreateTableSQL += "[" + tColumnName + "] " + tDataType + "(" + tColumnLength + ")" + tMark;
+						}
 					}
-					
+
+				
 					if(!"".equals(indexKey) && !"".equals(PK)) {
 						tCreateTableSQL += ",";
 						tCreateTableSQL += tChaneLine + tTab + tTab;
-						tCreateTableSQL += "CONSTRAINT " + indexKey + " PRIMARY KEY ([" + PK + "])";
+						tCreateTableSQL += "CONSTRAINT " + indexKey + " PRIMARY KEY (" + PK + ")";
 					}
 					
 					tCreateTableSQL += tChaneLine + tTab;

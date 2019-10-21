@@ -20,6 +20,9 @@ public class TableData {
 	/** 表格欄位的List */
 	private List<ColumnData> columnDataList = new ArrayList<ColumnData>();
 
+	/** 索引欄位的List */
+	private List<ColumnData> indexDataList = new ArrayList<ColumnData>();
+	
 	public String getTableName() {
 		return tableName;
 	}
@@ -62,5 +65,13 @@ public class TableData {
 
 	public void setColumnDataList(List<ColumnData> columnDataList) {
 		this.columnDataList = columnDataList;
+	}
+
+	public List<ColumnData> getIndexDataList() {
+		return indexDataList;
+	}
+
+	public void setIndexDataList(ColumnData indexData) {
+		this.indexDataList.add(indexData);
 	}
 }
