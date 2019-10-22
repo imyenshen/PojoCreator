@@ -48,7 +48,7 @@ public class CreateDataService {
 		tSQLDataType.put("CHAR", "CHAR");
 		tSQLDataType.put("nvarchar", "nvarchar2");
 		tSQLDataType.put("nchar", "nchar");
-		tSQLDataType.put("int", "integer");	
+		tSQLDataType.put("int", "Number");	
 		tSQLDataType.put("ntext", "clob");
 		tSQLDataType.put("bigint", "Number");// oracel 要用 Number(19)
 	}
@@ -64,7 +64,7 @@ public class CreateDataService {
 		if("MSSQL".equals(tSQLType)) {
 			this.returnSqlOfMssql();
 		}else if("ORACLE".equals(tSQLType)) {
-			this.returnOracleOfMssql();
+			this.returnSqlOfOracle();
 		}
 	}
 	
@@ -105,7 +105,7 @@ public class CreateDataService {
 				
 				tTableSQL.append(tIfNotExists + tableName + "' AND COLUMN_NAME = '" + tColumnName + "' AND DATA_TYPE = '" + tDataType + "'"); 
 				if(!("int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType))) {
-					tTableSQL.append(" and CHARACTER_MAXIMUM_LENGTH < '" + tColumnLength + "'");
+					tTableSQL.append(" and CHARACTER_MAXIMUM_LENGTH >= '" + tColumnLength + "'");
 				}
 				tTableSQL.append(")");
 				
@@ -197,11 +197,11 @@ public class CreateDataService {
 	 * @author 伸儒
 	 * @throws Exception
 	 */
-	public void returnOracleOfMssql() throws Exception {
-		// 還沒實作
+	public void returnSqlOfOracle() throws Exception {
+
 		StringBuffer tTableSQL = new StringBuffer();
 		String tCreateTableSQL = "";
-		
+
 		for(int i=0; i < tColumnDataList.size(); i++) {
 			ColumnData tColumnData = (ColumnData) tColumnDataList.get(i);
 			String tColumnName = tColumnData.getColumnName();
@@ -214,89 +214,150 @@ public class CreateDataService {
 				
 				String tOracleDataType = tSQLDataType.get(tDataType);
 				
+				tTableSQL.append(tChaneLine + tChaneLine + tTab);
+				tTableSQL.append("-- " + tColumnName + " " + tDescribe);
+				tTableSQL.append(tChaneLine + tTab);
 				
+				tTableSQL.append("select count(1) into v_cnt1 from user_tab_cols where table_name = upper('" + tableName + "') and column_name = upper('" + tColumnName + "');");
+				tTableSQL.append(tChaneLine + tTab);
+				
+				if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
+					tTableSQL.append("v_sql1 := 'alter table " + tableName + " add " + tColumnName + " " + tOracleDataType + " " + tMark + "';");
+				}else {
+					tTableSQL.append("v_sql1 := 'alter table " + tableName + " add " + tColumnName + " " + tOracleDataType + "("+tColumnLength+") " + tMark + "';");
+				}
+				
+				tTableSQL.append(tChaneLine + tChaneLine + tTab);
+				
+				tTableSQL.append("if v_cnt1 = 0 then");
+				tTableSQL.append(tChaneLine + tTab + tTab);
+				
+				tTableSQL.append("execute immediate v_sql1;");
+				tTableSQL.append(tChaneLine + tTab);
+				
+				tTableSQL.append("end if;");
+				tTableSQL.append(tChaneLine + tChaneLine + tTab);
+				
+				tTableSQL.append("select count(1) into v_cnt2 from user_tab_cols where table_name = upper('" + tableName + "') and column_name = upper('" + tColumnName + "') and data_type like upper('" + tOracleDataType + "%')");
+				
+				if( !("int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType))) {
+					tTableSQL.append(" and char_col_decl_length >= '" + tColumnLength + "'");
+				}
+				tTableSQL.append(";");
+				
+				tTableSQL.append(tChaneLine + tTab);
+				
+				if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
+					tTableSQL.append("v_sql2 := 'alter table " + tableName + " modify " + tColumnName + " " + tOracleDataType + "';");
+				}else {
+					tTableSQL.append("v_sql2 := 'alter table " + tableName + " modify " + tColumnName + " " + tOracleDataType + "("+tColumnLength+")" + "';");
+				}
+				tTableSQL.append(tChaneLine + tChaneLine + tTab);
+				
+				tTableSQL.append("if v_cnt2 = 0 then");
+				tTableSQL.append(tChaneLine + tTab + tTab);
+				
+				tTableSQL.append("execute immediate v_sql2; ");
+				tTableSQL.append(tChaneLine + tTab);
+				
+				tTableSQL.append("end if;");
+				
+				if(i == 0) {
+					tCreateTableSQL += "-- " + tableName + " " + tableDescribe + " : Unique: " + PK + tChaneLine;
+					tCreateTableSQL += "create or replace procedure sp_" + tableName;
+					tCreateTableSQL += tChaneLine;
+					tCreateTableSQL += "is";
+					tCreateTableSQL += tChaneLine + tTab;
+					tCreateTableSQL += "v_cnt number;";
+					tCreateTableSQL += tChaneLine + tTab;
+					tCreateTableSQL += "v_sql varchar2(4000);";
+					tCreateTableSQL += tChaneLine + tChaneLine + tTab;
+					
+					tCreateTableSQL += "v_cnt1 number;";
+					tCreateTableSQL += tChaneLine + tTab;
+					tCreateTableSQL += "v_sql1 varchar2(4000);";
+					tCreateTableSQL += tChaneLine + tChaneLine + tTab;
+					
+					tCreateTableSQL += "v_cnt2 number;";
+					tCreateTableSQL += tChaneLine + tTab;
+					tCreateTableSQL += "v_sql2 varchar2(4000);";
+					tCreateTableSQL += tChaneLine + tChaneLine;
+					
+					tCreateTableSQL += "begin";
+					tCreateTableSQL += tChaneLine + tChaneLine + tTab;
+					tCreateTableSQL += "select count(1) into v_cnt from user_tab_cols where table_name = upper('" + tableName + "');";
+					tCreateTableSQL += tChaneLine + tChaneLine + tTab;
+					
+					tCreateTableSQL += "v_sql := 'create table " + tableName + "( ";
+					
+					// 如果有主鍵,create指令就先建主鍵的欄位
+					if(tIndexDataList.size() > 0) {
+						
+						for(int j=0; j < tIndexDataList.size(); j++) {
+							ColumnData tIndexData = (ColumnData) tIndexDataList.get(j);
+							String tIndexName = tIndexData.getColumnName();
+							String tIndexDescribe = tIndexData.getDescribe();
+							String tIndexDataType = tIndexData.getDataType();
+							String tOracleIndexDataType = tSQLDataType.get(tIndexDataType);
+							String tIndexLength = tIndexData.getColumnLength();
+							String tIndexMark = "NOT NULL"; // 索引不能為null
+							
+							if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
+								tCreateTableSQL += tIndexName + " " + tOracleIndexDataType + " " + tIndexMark;
+							}else {
+								tCreateTableSQL += tIndexName + " " + tOracleIndexDataType + "(" + tIndexLength + ") " + tIndexMark;
+							}
+							
+							// 如果還有下一行就先加換行
+							if(j < tIndexDataList.size()-1) {
+								tCreateTableSQL += " ,";
+								// tCreateTableSQL += tChaneLine + tTab + tTab;
+							}
+						}
+					}else {
+						if( "int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType)) {
+							tCreateTableSQL += tColumnName + " " + tOracleDataType + " " + tMark;
+						}else {
+							tCreateTableSQL += tColumnName + " " + tOracleDataType + "(" + tColumnLength + ")" + tMark;
+						}
+					}
+					
+					if(!"".equals(indexKey) && !"".equals(PK)) {
+						tCreateTableSQL += ",";
+						tCreateTableSQL += "CONSTRAINT " + indexKey + " PRIMARY KEY (" + PK + ")";
+					}
+					
+					tCreateTableSQL += ")';";
+					tCreateTableSQL += tChaneLine + tChaneLine + tTab;
+					
+					tCreateTableSQL += "if v_cnt = 0 then";
+					tCreateTableSQL += tChaneLine + tTab + tTab;
+					tCreateTableSQL += "execute immediate v_sql;";
+					tCreateTableSQL += tChaneLine + tTab;
+					tCreateTableSQL += "end if;";
+				}
 			}else {
 				throw new Exception("表格名稱 : " + tableName + " 欄位明稱 : " + tColumnName + " 的型態 "+tDataType+" 昰錯誤的");
 			}
 		}
 		
+		tTableSQL.append(tChaneLine + tChaneLine);
+		tTableSQL.append("end sp_" + tableName + ";");
+		tTableSQL.append(tChaneLine + tChaneLine);
+		
+		tTableSQL.append("/"); // '/'這個是Oracle的go
+		tTableSQL.append(tChaneLine + tChaneLine);
+		
+		tTableSQL.append("exec sp_" + tableName + ";"); // 執行procedure
+		tTableSQL.append(tChaneLine + tChaneLine);
+		
+		tTableSQL.append("drop procedure sp_" + tableName + ";"); // 刪除procedure
+
 		tTableSQL.insert(0, tCreateTableSQL);
 		tTableSQL.append(tChaneLine + tChaneLine);
 		
 		sqlResult += tTableSQL;
 	}
-	
-//	/**
-//	  * 將table轉成SQL指令.
-//	  * @param pMap tables資料
-//	  * @author 伸儒
-//	  * @throws Exception 
-//	  */
-//	public void sendTableMapToSQL() throws Exception {
-//		
-//		String tTableSQL ="";
-//		if("MSSQL".equals(tSQLType)) {
-//			tTableSQL = "-- " + tableName + " " + tableDescribe + " : Unique: " + PK + tChaneLine;
-//			tTableSQL += "CREATE TABLE [" + tableName + "]\r\n(\r\n";
-//		}else if("ORACLE".equals(tSQLType)) {
-//			tTableSQL = "-- " + tableName + " " + tableDescribe + " : Unique: " + PK + tChaneLine;
-//			tTableSQL = "CREATE TABLE " + tableName + "\r\n(\r\n";
-//		}
-//		
-//		for(int i=0; i < tColumnDataList.size(); i++) {
-//			ColumnData tColumnData = (ColumnData) tColumnDataList.get(i);
-////			int tIndex = tColumnData.getIndex();
-//			String tColumnName = tColumnData.getColumnName();
-//			String tDescribe = tColumnData.getDescribe();
-//			String tDataType = tColumnData.getDataType();
-//			String tColumnLength = tColumnData.getColumnLength();
-//			String tMark = "Y".equals(tColumnData.getMark()) ? "NOT NULL" : "";
-//
-//			tTableSQL +="\t-- " + tColumnName + " " + tDescribe + "\r\n";
-//		
-//			if( tSQLDataType.containsKey(tDataType)) {
-//				
-//				if("MSSQL".equals(tSQLType)) {
-//					
-//					if( "int".equals(tDataType)) {
-//						tTableSQL +="\t["+tColumnName+"] " + tDataType + " "+tMark + ","+ "\r\n";
-//					}else if( "datetime".equals(tDataType)) {
-//						tTableSQL +="\t["+tColumnName+"] " + tDataType + " "+tMark + ","+ "\r\n";
-//					}else if( "ntext".equals(tDataType)) {
-//						tTableSQL +="\t["+tColumnName+"] " + tDataType + " "+tMark + ","+ "\r\n";
-//					}else {
-//						tTableSQL +="\t["+tColumnName+"] "+tDataType+"("+tColumnLength+") " +tMark + ","+ "\r\n";
-//					}
-//					
-//				}else if("ORACLE".equals(tSQLType)) {
-//					
-//					String tOracleDataType = tSQLDataType.get(tDataType);
-//					
-//					if( "integer".equals(tOracleDataType)) {
-//						tTableSQL +="\t"+tColumnName+" " + tOracleDataType + " "+tMark + ","+ "\r\n";
-//					}else if( "timestamp".equals(tOracleDataType)) {
-//						tTableSQL +="\t"+tColumnName+" " + tOracleDataType + " "+tMark + ","+ "\r\n";
-//					}else if( "clob".equals(tOracleDataType)) {
-//						tTableSQL +="\t"+tColumnName+" " + tOracleDataType + " "+tMark + ","+ "\r\n";
-//					}else {
-//						tTableSQL +="\t"+tColumnName+" "+tOracleDataType+"("+tColumnLength+") " +tMark + ","+ "\r\n";
-//					}
-//					
-//				}
-//			}else {
-//				throw new Exception("表格名稱 : " + tableName + " 欄位明稱 : " + tColumnName + " 的型態 "+tDataType+" 昰錯誤的");
-//				
-//			}
-//		}
-//		
-//		if(!"".equals(indexKey)) {
-//			tTableSQL += "\tCONSTRAINT " +indexKey+ " PRIMARY KEY ([" +PK+"])";
-//		}
-//		tTableSQL += "\r\n);";
-//		tTableSQL += "\r\n \r\n";
-//		
-//		sqlResult += tTableSQL;
-//	}
 	
 	/**
 	  * 將table轉成Hibernate xml指令.

@@ -66,7 +66,7 @@ public class SendExcelGetDataService {
 		
 		// 處理資料的地方		
 		obj.runTableDoWork("MSSQL",tData);
-//		obj.runTableDoWork("ORACLE",tData);
+		obj.runTableDoWork("ORACLE",tData);
 		
 		System.out.println("已完成!");
 	}
