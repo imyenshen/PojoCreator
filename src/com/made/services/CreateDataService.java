@@ -207,7 +207,10 @@ public class CreateDataService {
 			String tColumnName = tColumnData.getColumnName();
 			String tDescribe = tColumnData.getDescribe();
 			String tDataType = tColumnData.getDataType();
-			String tColumnLength = tColumnData.getColumnLength();
+			String tColumnLength = tColumnData.getColumnLength().toLowerCase();
+			tColumnLength = "max".equals(tColumnLength) ? "4000" : tColumnLength;
+			tColumnLength = Integer.parseInt(tColumnLength)>4000 ? "4000" : tColumnLength;
+			
 			String tMark = "Y".equals(tColumnData.getMark()) ? "NOT NULL" : "";
 			
 			if(tSQLDataType.containsKey(tDataType)) {
