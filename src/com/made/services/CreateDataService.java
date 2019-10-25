@@ -105,7 +105,13 @@ public class CreateDataService {
 				
 				tTableSQL.append(tIfNotExists + tableName + "' AND COLUMN_NAME = '" + tColumnName + "' AND DATA_TYPE = '" + tDataType + "'"); 
 				if(!("int".equals(tDataType) || "datetime".equals(tDataType) || "ntext".equals(tDataType) || "bigint".equals(tDataType))) {
-					tTableSQL.append(" and CHARACTER_MAXIMUM_LENGTH >= '" + tColumnLength + "'");
+
+					if("MAX".equals(tColumnLength.toUpperCase())) {
+						// MSSQL 長度建立為max時,他會建-1進去
+						tTableSQL.append(" and CHARACTER_MAXIMUM_LENGTH = '" + "-1" + "'");
+					}else {
+						tTableSQL.append(" and CHARACTER_MAXIMUM_LENGTH >= '" + tColumnLength + "'");
+					}
 				}
 				tTableSQL.append(")");
 				
