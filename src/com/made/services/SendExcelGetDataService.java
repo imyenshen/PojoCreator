@@ -42,7 +42,7 @@ public class SendExcelGetDataService {
 	public static String path = "C:/Users/ShenLu/Desktop/ShenLuModule/";
 	
 	// 測試用
-	private static String tTestPath = "C:\\Users\\ShenLu\\Desktop\\111";
+	private static String tTestPath = "C:\\Users\\shenLu\\Desktop\\ShenLuModule";
 	
 	public static void main(String[] args) throws Exception {
 		
@@ -91,12 +91,16 @@ public class SendExcelGetDataService {
 			tSQL += tCreateDataService.sqlResult + tChaneLine;
 			
 			// 將table 轉成 hibernate.xml (已完成,但目前不使用)
-			//String tHibernateXml = tCreateDataService.sendTableMapToHibernateXml();
-			//this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tHibernameName + "/" + tTableData.getTableName() + ".hbm.xml",tHibernateXml);
+			String tHibernateXml = tCreateDataService.sendTableMapToHibernateXml();
+			if(!"".equals(tHibernateXml)) {
+				this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tHibernameName + "/" + tTableData.getTableName() + ".hbm.xml",tHibernateXml);
+			}
 			
 			// 將table 轉成 Pojo類別
 			String tPojoClass = tCreateDataService.sendTableMapToPojo();
-			this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tPojoName +"/" + tTableData.getTableName() + ".java",tPojoClass);
+			if(!"".equals(tPojoClass)) {
+				this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tPojoName +"/" + tTableData.getTableName() + ".java",tPojoClass);
+			}
 		}
 		
 		// 將SQL檔案產生
