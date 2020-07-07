@@ -1,16 +1,33 @@
 package com.made.services;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
+
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JFileChooser;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.border.Border;
 
 import com.made.domain.ColumnData;
 import com.made.domain.TableData;
@@ -25,52 +42,130 @@ import jxl.read.biff.BiffException;
  */
 public class SendExcelGetDataService {
 
-	String tChaneLine = "\r\n"; // 換行
+	// 換行
+	String tChaneLine = "\r\n";
 	
-	String tSQLName = "CreateSQL"; // SQL檔名
+	// SQL檔名
+	String tSQLName = "CreateSQL";
 	
-	String tPackageName = "createDate"; // 存放資料夾
+	// 存放資料夾
+	String tPackageName = "createDate";
 	
-	String tPojoName = "pojo"; // pojo資料夾
+	// pojo資料夾
+	String tPojoName = "pojo";
 	
-	String tHibernameName = "hibernateXml"; // hibernate資料夾
+	// hibernate資料夾
+	String tHibernameName = "hibernateXml";
 	
-	// Excel檔案名稱
-	public static String tFileName = "TableSkema.xls";
+	// 1:可重複執行  2:執行一次
+	public static int status = 1;
 	
 	// 檔案產生路徑
-	public static String path = "C:/Users/ShenLu/Desktop/ShenLuModule/";
+	public static String path = "";
 	
-	// 測試用
-	private static String tTestPath = "C:\\Users\\shenLu\\Desktop\\ShenLuModule";
+	// 檔案產生父路徑
+	public static String parentPath = "";
 	
 	public static void main(String[] args) throws Exception {
 		
-		SendExcelGetDataService obj = new SendExcelGetDataService();
-		String tExcelPath;
+		JFrame frame = new JFrame("傳入Table skema產生CreateSQL指令");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		if(!"".equals(tTestPath)) {
-			path = tTestPath;
-			tExcelPath = path + "/" + tFileName;
-		}else {
-			// jar檔路徑
-			path = getAppPath(SendExcelGetDataService.class);
-			tExcelPath = path + "/" + tFileName;
-		}
-		
-		// 傳入Excel路徑
-		File file = new File(tExcelPath);
-
-		// 將Excel 內的table資料 轉成 Map
-		Map<Integer, TableData> tData = obj.readExcel(file);
-		
-		// 處理資料的地方		
-		obj.runTableDoWork("MSSQL",tData);
-		obj.runTableDoWork("ORACLE",tData);
-		
-		System.out.println("已完成!");
+		createUI(frame);
+		frame.setSize(560, 200);
+		frame.setLocationRelativeTo(null);
+		frame.setVisible(true);
 	}
 
+	private static void createUI(JFrame frame) {
+
+		Border refline = BorderFactory.createLineBorder(Color.red);
+
+		JPanel panelNorth = new JPanel();
+		panelNorth.add(new JLabel("上傳Skema Excel"));
+
+		JPanel panelCenter = new JPanel();
+		JCheckBox chk1 = new JCheckBox("可重複執行", true);
+		chk1.addItemListener(new ItemListener() {
+			@Override
+			public void itemStateChanged(ItemEvent e) {
+				status = e.getStateChange();
+			}
+		});
+		panelCenter.add(chk1);
+		
+		final JLabel label = new JLabel();
+		JButton uploadButton = new JButton("上傳檔案");
+		uploadButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				JFileChooser fileChooser = new JFileChooser();
+				fileChooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+
+				int option = fileChooser.showOpenDialog(frame);
+				if (option == JFileChooser.APPROVE_OPTION) {
+					File file = fileChooser.getSelectedFile();
+					String tFileName = file.getName();
+					
+					if(tFileName.contains(".xls")) {
+						label.setText("檔案: " + tFileName);
+						path = file.getPath();
+						parentPath = Paths.get(path).getParent().toString();
+					}else {
+						label.setText("");
+						JOptionPane.showMessageDialog(frame, "此檔案 " + tFileName + " 格式不符,請傳入 xls 格式");
+					}
+				} else {
+					label.setText("");
+				}
+			}
+		});
+		panelCenter.add(label);
+		panelCenter.add(uploadButton);
+
+		JPanel panelSouth = new JPanel();
+		JButton okButton = new JButton("執行");
+		okButton.setBorder(refline);
+		okButton.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				
+				SendExcelGetDataService obj = new SendExcelGetDataService();
+
+				if("".equals(path)) {
+					JOptionPane.showMessageDialog(frame, "請先上傳Excel檔案!");
+					return;
+				}
+				
+				// 傳入Excel路徑
+				File file = new File(path);
+
+				// 將Excel 內的table資料 轉成 Map
+				Map<Integer, TableData> tData;
+				try {
+					tData = obj.readExcel(file);
+					
+					if(status == 1) {
+						// 處理資料的地方		
+						obj.runTableDoWork("MSSQL",tData);
+						obj.runTableDoWork("ORACLE",tData);
+						JOptionPane.showMessageDialog(frame, "已完成!");
+					}else {
+						JOptionPane.showMessageDialog(frame, "此功能尚未實作!");
+					}
+				} catch (Exception e1) {
+					e1.printStackTrace();
+					JOptionPane.showMessageDialog(frame, "執行失敗!");
+				}
+			}
+		});
+		panelSouth.add(okButton);
+
+		frame.getContentPane().add(panelNorth, BorderLayout.PAGE_START);
+		frame.getContentPane().add(panelCenter, BorderLayout.CENTER);
+		frame.getContentPane().add(panelSouth, BorderLayout.PAGE_END);
+	}
+	
 	public void runTableDoWork(String tSQLType,Map<Integer, TableData> pData) throws Exception {
 
 		Set<Integer> tKey = pData.keySet();		
@@ -93,20 +188,19 @@ public class SendExcelGetDataService {
 			// 將table 轉成 hibernate.xml (已完成,但目前不使用)
 			String tHibernateXml = tCreateDataService.sendTableMapToHibernateXml();
 			if(!"".equals(tHibernateXml)) {
-				this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tHibernameName + "/" + tTableData.getTableName() + ".hbm.xml",tHibernateXml);
+				this.madeCreateSQLToTxt(parentPath + "/" + tPackageName + "/" + tHibernameName + "/" + tTableData.getTableName() + ".hbm.xml",tHibernateXml);
 			}
 			
 			// 將table 轉成 Pojo類別
 			String tPojoClass = tCreateDataService.sendTableMapToPojo();
 			if(!"".equals(tPojoClass)) {
-				this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tPojoName +"/" + tTableData.getTableName() + ".java",tPojoClass);
+				this.madeCreateSQLToTxt(parentPath + "/" + tPackageName + "/" + tPojoName +"/" + tTableData.getTableName() + ".java",tPojoClass);
 			}
 		}
 		
 		// 將SQL檔案產生
-		this.madeCreateSQLToTxt(path + "/" + tPackageName + "/" + tSQLName +"_"+ tSQLType + ".sql", tSQL);
+		this.madeCreateSQLToTxt(parentPath + "/" + tPackageName + "/" + tSQLName +"_"+ tSQLType + ".sql", tSQL);
 	}
-	
 	
 	public Map<Integer, TableData> readExcel(File file) throws Exception {
 		
